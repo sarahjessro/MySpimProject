@@ -11,49 +11,49 @@ void ALU(unsigned A,unsigned B,char ALUControl,unsigned *ALUresult,char *Zero)
     {
     //Addition
     case 0x0:
-        ALUresult = A+B;
+        *ALUresult = A+B;
         break;
     
     //Subtraction
     case 0x1:
-        ALUresult = A-B;
+        *ALUresult = A-B;
         break;
-    
     
     case 0x2:
         //if A < B, Z = 1; otherwise, Z = 0
+        *ALUresult = (A < B) ? 1 : 0;
         break;
 
     case 0x3:
         //if A < B, Z = 1; otherwise, Z = 0 (A and B are unsigned integers)
+        *ALUresult = (A < B) ? 1 : 0;
         break;
         
     case 0x4:
         //Z = A AND B
-        ALUresult = A & B;
+        *ALUresult = A & B;
         break;    
     
     case 0x5:
         //Z = A OR B
-        ALUresult = A | B;
+        *ALUresult = A | B;
         break;
 
     case 0x6:
         //Z = SHIFT B LEFT BY 16 BITS
-        ALUresult = B << 16;
+        *ALUresult = B << 16;
         break;
         
     case 0x7:
         //Z = NOT A
-        ALUresult = ~A;
+        *ALUresult = ~A;
         break;
-        
-        
 
     default:
         break;
     }
-
+    //Flag
+    *Zero = (*ALUresult == 0) ? 1 : 0; 
 }
 
 /* instruction fetch */
