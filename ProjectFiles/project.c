@@ -61,23 +61,101 @@ void ALU(unsigned A,unsigned B,char ALUControl,unsigned *ALUresult,char *Zero)
 int instruction_fetch(unsigned PC,unsigned *Mem,unsigned *instruction)
 {
 
+//returns signal error for incorrect address
+if (PC % 4 != 0) {
+    return 1;
+}
+
+//Gets correct word from memory
+*instruction = Mem[PC >> 2];
+
+//if fetch works, return 0
+return 0;
 }
 
 
 /* instruction partition */
 /* 10 Points */
 void instruction_partition(unsigned instruction, unsigned *op, unsigned *r1,unsigned *r2, unsigned *r3, unsigned *funct, unsigned *offset, unsigned *jsec)
-{
+{ 
+    //mask/shift bits for each instruction
+    //opcode
+    *op = instruction >> 26;
+    //rs
+    *r1 = (instruction >> 21) & 0x1F;
+    //rt
+    *r2 = (instruction >> 16) & 0x1F;
+    //rd
+    *r3 = (instruction >>11) & 0x1F;
+    //funct
+    *funct = instruction & 0x3F;
+    //immediate
+    *offset = instruction & 0xFFFF;
+    //jump
+    *jsec = instruction & 0x3FFFFFF;
 
 }
-
-
 
 /* instruction decode */
 /* 15 Points */
 int instruction_decode(unsigned op,struct_controls *controls)
 {
+    //initialize every signal to zero
+    controls->ALUOp = 0;
+    controls->ALUSrc = 0;
+    controls->Branch = 0;
+    controls->Jump = 0;
+    controls->MemRead = 0;
+    controls->MemtoReg = 0;
+    controls->MemWrite = 0;
+    controls->RegDst = 0;
+    controls->RegWrite = 0;
 
+
+    //Switch function to decode each instruction
+    switch(op) {
+        //r type instruction
+        case 0x0:
+        //ctrl bits
+        break;
+
+        //lw
+        case 0x23: 
+        break;
+
+        //sw
+        case 0x2B:
+        break;
+
+        //beq
+        case 0x4:
+        break;
+
+        //addi
+        case 0x8:
+        break;
+
+        //slti
+        case 0xA:
+        break;
+
+        //sltiu
+        case 0xB:
+        break;
+
+        //lui
+        case 0xF:
+        break;
+
+        //j
+        case 0x2:
+        break;
+
+        //halt condition, nothing applies so return 1
+        default:
+         return 1;
+    }
+   return 0;
 }
 
 /* Read Register */
