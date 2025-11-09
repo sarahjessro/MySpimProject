@@ -116,39 +116,71 @@ int instruction_decode(unsigned op,struct_controls *controls)
     switch(op) {
         //r type instruction
         case 0x0:
-        //ctrl bits
+        controls->RegWrite = 1;
+        controls->RegDst = 1;
+        controls->ALUOp = 7;
         break;
 
         //lw
         case 0x23: 
+        controls->RegWrite = 1;
+        controls->MemRead = 1;
+        controls->MemtoReg = 1;
+        controls->ALUSrc = 1;
         break;
 
         //sw
         case 0x2B:
+        controls->MemWrite = 1;
+        controls->ALUSrc = 1;
+        controls->RegDst = 1;
+        controls->MemtoReg = 1;
         break;
 
         //beq
         case 0x4:
+        controls->Branch = 1;
+        controls->RegDst = 1;
+        controls->MemtoReg = 1;
+        controls->ALUSrc = 1;
+        controls->ALUOp = 1;
         break;
 
         //addi
         case 0x8:
+        controls->RegWrite = 1;
+        controls->ALUSrc = 1;
         break;
 
         //slti
         case 0xA:
+        controls->ALUOp = 1;
+        controls->RegWrite = 1;
+        controls->ALUSrc = 1;
         break;
 
         //sltiu
         case 0xB:
+        controls->ALUOp = 1;
+        controls->RegWrite = 1;
+        controls->ALUSrc = 1;
         break;
 
         //lui
         case 0xF:
+        controls->ALUOp = 1;
+        controls->ALUSrc = 1;
+        controls->RegWrite = 1;
         break;
 
         //j
         case 0x2:
+        controls->Jump = 1;
+        controls->RegDst = 1;
+        controls->Branch = 1;
+        controls->MemtoReg = 1;
+        controls->ALUSrc = 1;
+        controls->ALUOp = 1;
         break;
 
         //halt condition, nothing applies so return 1
@@ -162,6 +194,9 @@ int instruction_decode(unsigned op,struct_controls *controls)
 /* 5 Points */
 void read_register(unsigned r1,unsigned r2,unsigned *Reg,unsigned *data1,unsigned *data2)
 {
+    //Read registers and store into ptrs
+    *data1 = Reg[r1];
+    *data2 = Reg[r2];
 
 }
 
