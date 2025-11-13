@@ -6,7 +6,6 @@
 void ALU(unsigned A,unsigned B,char ALUControl,unsigned *ALUresult,char *Zero)
 {
     //Do operations shown in table (instructions) and output correct result
-    //case 1..2..3..4 etc ?
     switch (ALUControl)
     {
     //Addition
@@ -61,7 +60,7 @@ void ALU(unsigned A,unsigned B,char ALUControl,unsigned *ALUresult,char *Zero)
 int instruction_fetch(unsigned PC,unsigned *Mem,unsigned *instruction)
 {
 
-//returns signal error for incorrect address
+//Returns signal error for incorrect address
 if (PC % 4 != 0) {
     return 1;
 }
@@ -69,7 +68,7 @@ if (PC % 4 != 0) {
 //Gets correct word from memory
 *instruction = Mem[PC >> 2];
 
-//if fetch works, return 0
+//If fetch works, return 0
 return 0;
 }
 
@@ -78,14 +77,15 @@ return 0;
 /* 10 Points */
 void instruction_partition(unsigned instruction, unsigned *op, unsigned *r1,unsigned *r2, unsigned *r3, unsigned *funct, unsigned *offset, unsigned *jsec)
 { 
-    //mask/shift bits for each instruction
-    //opcode
+    //Mask/shift bits for each instruction
+
+    //Opcode
     *op = instruction >> 26;
-    //rs
+    //RS
     *r1 = (instruction >> 21) & 0x1F;
-    //rt
+    //RT
     *r2 = (instruction >> 16) & 0x1F;
-    //rd
+    //RD
     *r3 = (instruction >>11) & 0x1F;
     //funct
     *funct = instruction & 0x3F;
@@ -114,7 +114,7 @@ int instruction_decode(unsigned op,struct_controls *controls)
 
     //Switch function to decode each instruction
     switch(op) {
-        //r type instruction
+        //R type instruction
         case 0x0:
         controls->RegWrite = 1;
         controls->RegDst = 1;
@@ -133,16 +133,11 @@ int instruction_decode(unsigned op,struct_controls *controls)
         case 0x2B:
         controls->MemWrite = 1;
         controls->ALUSrc = 1;
-        controls->RegDst = 1;
-        controls->MemtoReg = 1;
         break;
 
         //beq
         case 0x4:
         controls->Branch = 1;
-        controls->RegDst = 1;
-        controls->MemtoReg = 1;
-        controls->ALUSrc = 1;
         controls->ALUOp = 1;
         break;
 
@@ -154,21 +149,21 @@ int instruction_decode(unsigned op,struct_controls *controls)
 
         //slti
         case 0xA:
-        controls->ALUOp = 1;
+        controls->ALUOp = 2;
         controls->RegWrite = 1;
         controls->ALUSrc = 1;
         break;
 
         //sltiu
         case 0xB:
-        controls->ALUOp = 1;
+        controls->ALUOp = 3;
         controls->RegWrite = 1;
         controls->ALUSrc = 1;
         break;
 
         //lui
         case 0xF:
-        controls->ALUOp = 1;
+        controls->ALUOp = 6;
         controls->ALUSrc = 1;
         controls->RegWrite = 1;
         break;
@@ -176,14 +171,9 @@ int instruction_decode(unsigned op,struct_controls *controls)
         //j
         case 0x2:
         controls->Jump = 1;
-        controls->RegDst = 1;
-        controls->Branch = 1;
-        controls->MemtoReg = 1;
-        controls->ALUSrc = 1;
-        controls->ALUOp = 1;
         break;
 
-        //halt condition, nothing applies so return 1
+        //Halt condition, nothing applies so return 1
         default:
          return 1;
     }
@@ -205,7 +195,16 @@ void read_register(unsigned r1,unsigned r2,unsigned *Reg,unsigned *data1,unsigne
 /* 10 Points */
 void sign_extend(unsigned offset,unsigned *extended_value)
 {
+ //Mask
+ offset &= 0XFFFF;
 
+ //If set, extend with 1s
+ if (offset & 0x8000) {
+    *extended_value = offset | 0xffff0000;
+ } else {
+    *extended_value = offset;
+ }
+     
 }
 
 /* ALU operations */
@@ -213,6 +212,59 @@ void sign_extend(unsigned offset,unsigned *extended_value)
 int ALU_operations(unsigned data1,unsigned data2,unsigned extended_value,unsigned funct,char ALUOp,char ALUSrc,unsigned *ALUresult,char *Zero)
 {
 
+   unsigned ALUControl = ALUOp;
+
+
+   //Halt condition if incorrect instruction
+   if ((unsigned)ALUOp > 7) {
+    return 1;
+   }
+
+   //If R-type, choose which instruction
+   if (ALUOp == 7) {
+    switch(funct) {
+        //ADD
+        case 0x20: 
+        ALUControl = 0;
+        break;
+
+        //SUBTRACT
+        case 0x22: 
+        ALUControl = 1;
+        break;
+
+        //AND
+        case 0x24:
+        ALUControl = 4;
+        break; 
+
+        //OR 
+        case 0x25:
+        ALUControl = 5;
+        break;
+
+        //SET LESS THAN
+        case 0x2a:
+        ALUControl = 2;
+        break;
+
+        //SET LESS THAN UNSIGNED
+        case 0x2b:
+        ALUControl = 3;
+        break;
+
+        //Return if halt condition
+        default:
+        return 1;
+    }
+   }
+
+   //Set equal to extended value if input comes from sign extend
+   unsigned B = (ALUSrc) ? extended_value : data2; 
+
+   ALU(data1, B, ALUControl, ALUresult, Zero);
+
+   return 0;
 }
 
 /* Read / Write Memory */
@@ -220,13 +272,54 @@ int ALU_operations(unsigned data1,unsigned data2,unsigned extended_value,unsigne
 int rw_memory(unsigned ALUresult,unsigned data2,char MemWrite,char MemRead,unsigned *memdata,unsigned *Mem)
 {
 
-}
+  //Write value to mem location addressed  
+  if(MemWrite == 1) {
+    if(ALUresult % 4 == 0)
+    Mem[ALUresult >> 2] = data2;
+     else
+       return 1;
+  }
+
+  //Read content set to memdata
+  if(MemRead == 1) {
+    if(ALUresult % 4 == 0) 
+        *memdata = Mem[ALUresult >> 2];
+       else
+         return 1; 
+    }
+
+    return 0;
+  }
+
+
 
 
 /* Write Register */
 /* 10 Points */
 void write_register(unsigned r2,unsigned r3,unsigned memdata,unsigned ALUresult,char RegWrite,char RegDst,char MemtoReg,unsigned *Reg)
 {
+  //Can only write to reg if signal is 1
+  if (RegWrite == 1) {
+    unsigned write_reg;
+    unsigned write_data;
+
+    if(RegDst == 1)
+      write_reg = r3; //R-type
+
+    else
+      write_reg = r2; //I-type
+
+    //Data source: from mem or ALU  
+    if(MemtoReg == 1)
+       write_data = memdata;  
+
+    else
+       write_data = ALUresult; 
+       
+    //Write to reg file   
+    if(write_reg != 0)
+       Reg[write_reg] = write_data;   
+  }
 
 }
 
@@ -234,6 +327,18 @@ void write_register(unsigned r2,unsigned r3,unsigned memdata,unsigned ALUresult,
 /* 10 Points */
 void PC_update(unsigned jsec,unsigned extended_value,char Branch,char Jump,char Zero,unsigned *PC)
 {
+    //Add (Update PC by 4)
+    unsigned nextPC = *PC + 4;
 
+    //if Branch
+    if (Branch == 1 && Zero == 1)
+      nextPC += (extended_value << 2);
+
+    //If jump
+    if (Jump == 1)
+      nextPC = (nextPC & 0xF0000000) | (jsec << 2);  
+
+    //Set ptr to result of nextPC
+    *PC = nextPC;  
 }
 
